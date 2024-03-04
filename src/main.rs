@@ -1,7 +1,7 @@
 use arboard::Clipboard;
 use color_eyre::{eyre::WrapErr, Result};
 use crossterm::event::{self, Event, KeyCode, KeyEvent, KeyEventKind};
-use db::PasteboardItem;
+use db::ClipboardItem;
 use ratatui::{
     prelude::*,
     symbols::border,
@@ -28,15 +28,15 @@ async fn main() -> Result<()> {
             let mut clipboard = Clipboard::new().unwrap();
             let current_clipped_text = clipboard.get_text().unwrap();
 
-            let latest_item = db::get_latest_pasteboard_item(&pool).await?;
+            let latest_item = db::get_latest_clipboard_item(&pool).await?;
 
             match latest_item {
                 None => {
-                    db::create_pasteboard_item(&pool, current_clipped_text).await?;
+                    db::create_clipboard_item(&pool, current_clipped_text).await?;
                 }
                 Some(pb_item) => {
                     if pb_item.content != current_clipped_text {
-                        db::create_pasteboard_item(&pool, current_clipped_text).await?;
+                        db::create_clipboard_item(&pool, current_clipped_text).await?;
                     }
                 }
             }
@@ -55,7 +55,7 @@ async fn main() -> Result<()> {
 
 #[derive(Debug, Default)]
 pub struct App {
-    items: Vec<PasteboardItem>,
+    items: Vec<ClipboardItem>,
     exit: bool,
 }
 
@@ -64,7 +64,7 @@ impl App {
         let pool = SqlitePool::connect(&env::var("DATABASE_URL")?).await?;
 
         while !self.exit {
-            let pb_items = db::get_pasteboard_items(&pool).await?;
+            let pb_items = db::get_clipboard_items(&pool).await?;
             self.items = pb_items;
 
             terminal.draw(|frame| self.render_frame(frame))?;

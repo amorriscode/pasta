@@ -1,0 +1,12 @@
+{
+  "db_name": "SQLite",
+  "query": "INSERT INTO clipboard (content) VALUES (?1)",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Right": 1
+    },
+    "nullable": []
+  },
+  "hash": "96f4f4054b0c6f7bc116f4d976a512ec1e8162db9ead20801dc25f4ad50f74dd"
+}

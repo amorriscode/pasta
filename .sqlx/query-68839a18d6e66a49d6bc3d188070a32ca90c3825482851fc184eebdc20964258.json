@@ -1,6 +1,6 @@
 {
   "db_name": "SQLite",
-  "query": "SELECT content FROM pasteboard ORDER BY created_at DESC LIMIT 1",
+  "query": "SELECT content FROM clipboard",
   "describe": {
     "columns": [
       {
@@ -16,5 +16,5 @@
       false
     ]
   },
-  "hash": "782a0b39f9804ec0b5c9533c9676319e0740b6bb1445dc27e55baf473d9844ff"
+  "hash": "68839a18d6e66a49d6bc3d188070a32ca90c3825482851fc184eebdc20964258"
 }

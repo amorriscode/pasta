@@ -1,6 +1,7 @@
 use arboard::Clipboard;
 use color_eyre::{eyre::WrapErr, Result};
 use crossterm::event::{self, Event, KeyCode, KeyEvent, KeyEventKind};
+use db::PasteboardItem;
 use ratatui::{
     prelude::*,
     symbols::border,
@@ -44,7 +45,7 @@ async fn main() -> Result<()> {
         },
         _ => {
             let mut terminal = tui::init()?;
-            App::default().run(&mut terminal)?;
+            App::default().run(&mut terminal).await?;
             tui::restore()?;
         }
     }
@@ -54,12 +55,18 @@ async fn main() -> Result<()> {
 
 #[derive(Debug, Default)]
 pub struct App {
+    items: Vec<PasteboardItem>,
     exit: bool,
 }
 
 impl App {
-    pub fn run(&mut self, terminal: &mut tui::Tui) -> Result<()> {
+    pub async fn run(&mut self, terminal: &mut tui::Tui) -> Result<()> {
+        let pool = SqlitePool::connect(&env::var("DATABASE_URL")?).await?;
+
         while !self.exit {
+            let pb_items = db::get_pasteboard_items(&pool).await?;
+            self.items = pb_items;
+
             terminal.draw(|frame| self.render_frame(frame))?;
             self.handle_events().wrap_err("handle events failed")?;
         }
@@ -102,7 +109,13 @@ impl Widget for &App {
             .borders(Borders::ALL)
             .border_set(border::THICK);
 
-        let counter_text = Text::from(vec![Line::from(vec!["Clipboard manager".into()])]);
+        let lines = self
+            .items
+            .iter()
+            .map(|item| Line::from(item.clone().content.yellow()))
+            .collect::<Vec<Line>>();
+
+        let counter_text = Text::from(lines);
 
         Paragraph::new(counter_text).block(block).render(area, buf);
     }

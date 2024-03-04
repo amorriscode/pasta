@@ -1,7 +1,16 @@
 use sqlx::{query_as, Result, SqlitePool};
 
+#[derive(Debug, Default, Clone)]
 pub struct PasteboardItem {
     pub content: String,
+}
+
+pub async fn get_pasteboard_items(pool: &SqlitePool) -> Result<Vec<PasteboardItem>, sqlx::Error> {
+    let result = query_as!(PasteboardItem, "SELECT content FROM pasteboard")
+        .fetch_all(pool)
+        .await?;
+
+    Ok(result)
 }
 
 pub async fn get_latest_pasteboard_item(

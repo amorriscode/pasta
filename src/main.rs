@@ -1,3 +1,4 @@
+use arboard::Clipboard;
 use color_eyre::{eyre::WrapErr, Result};
 use crossterm::event::{self, Event, KeyCode, KeyEvent, KeyEventKind};
 use ratatui::{
@@ -5,15 +6,49 @@ use ratatui::{
     symbols::border,
     widgets::{block::*, *},
 };
+use sqlx::sqlite::SqlitePool;
+use std::{env, thread::sleep, time::Duration};
 
+mod commands;
+mod db;
 mod errors;
 mod tui;
 
-fn main() -> Result<()> {
+#[tokio::main(flavor = "current_thread")]
+async fn main() -> Result<()> {
     errors::install_hooks()?;
-    let mut terminal = tui::init()?;
-    App::default().run(&mut terminal)?;
-    tui::restore()?;
+
+    let pool = SqlitePool::connect(&env::var("DATABASE_URL")?).await?;
+
+    let matches = commands::cli().get_matches();
+
+    match matches.subcommand() {
+        Some(("start", _)) => loop {
+            let mut clipboard = Clipboard::new().unwrap();
+            let current_clipped_text = clipboard.get_text().unwrap();
+
+            let latest_item = db::get_latest_pasteboard_item(&pool).await?;
+
+            match latest_item {
+                None => {
+                    db::create_pasteboard_item(&pool, current_clipped_text).await?;
+                }
+                Some(pb_item) => {
+                    if pb_item.content != current_clipped_text {
+                        db::create_pasteboard_item(&pool, current_clipped_text).await?;
+                    }
+                }
+            }
+
+            sleep(Duration::from_millis(500));
+        },
+        _ => {
+            let mut terminal = tui::init()?;
+            App::default().run(&mut terminal)?;
+            tui::restore()?;
+        }
+    }
+
     Ok(())
 }
 
